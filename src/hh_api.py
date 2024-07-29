@@ -4,9 +4,12 @@ import json
 
 
 class Base(ABC):
+    """
+    Конструктор класса для работы с API
+    """
 
     @abstractmethod
-    def __init(self):
+    def __init__(self):
         pass
 
 
@@ -16,11 +19,18 @@ class Parser(ABC):
         self.api_work = api_work
 
     def file_saving(self, vacancies) -> None:
+        """
+        Метод класса Parser(BaseHH) записывающий в файл *.json всю информацию по вакансиям
+        """
+
         with open(self.api_work, "w", encoding='utf-8') as file:
-            json.dump(vacancies, file)
+            json.dump(vacancies, file, indent=4)
 
 
 class VacanciesHH(Parser):
+    """
+    Класс для работы с API HeadHunter
+    """
 
     def __init__(self, api_work) -> None:
         self.vacancies = []
@@ -31,9 +41,10 @@ class VacanciesHH(Parser):
 
     def load_vacancies(self, user_input) -> None:
         """
-        Метод класса VacanciesHH(Parser), который запрашивает информацию по вакаснсиям на сайте hh.ru
-        :param user_input: наименовании запрашиваемой вакансии
+        Метод класса VacanciesHH(Parser),
+        который запрашивает информацию по вакаснсиям на сайте hh.ru
         """
+
         self.parameters['text'] = user_input
         while self.parameters.get('page') != 20:
             response = requests.get(self.url, headers=self.headers, params=self.parameters, timeout=10)
