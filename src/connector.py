@@ -32,6 +32,7 @@ class Connector(ABC):
 
 class ConnectorJson(Connector):
 
+    """Класс коннектор для получения, удалеия, сохранения вакансий"""
     def __init__(self, file_path: Path, encoding='utf-8') -> None:
         self.file_path = file_path
         self.encoding = encoding
