@@ -1,54 +1,60 @@
 from abc import ABC, abstractmethod
+from typing import List
+
 import requests
 import json
+import time
+from src.vacancies import Vacancies
 
 
 class Base(ABC):
-    """
-    Конструктор класса для работы с API
-    """
+
+    """Конструктор класса для работы с API"""
 
     @abstractmethod
-    def __init__(self):
+    def get_vacancies(self, search: str) -> list[dict]:
         pass
 
 
-class Parser(ABC):
+class HHVacancies(Base):
 
-    def __init__(self, api_work) -> None:
-        self.api_work = api_work
+    """Класс для работы с API HeadHunter"""
 
-    def file_saving(self, vacancies) -> None:
-        """
-        Метод класса Parser(BaseHH) записывающий в файл *.json всю информацию по вакансиям
-        """
+    def get_vacancies(self, search: str) -> list[Vacancies]:
 
-        with open(self.api_work, "w", encoding='utf-8') as file:
-            json.dump(vacancies, file, indent=4)
+        """ Метод класса, который запрашивает информацию по вакаснсиям на сайте hh.ru"""
 
+        url = 'https://api.hh.ru/vacancies'
+        params = {
+            'text': search,
+            'only_with_salary': True,
+            'per_page': 100,
+        }
 
-class VacanciesHH(Parser):
-    """
-    Класс для работы с API HeadHunter
-    """
+        raw_vacancies = self._get_list(url, params, max_pages=2)
+        return [
+            Vacancies(
+                name=data['name'],
+                url=data['alternate_url'],
+                salary_currency=data['salary']['currency'],
+                salary_from=data['salary']['from'],
+                salary_to=data['salary']['to'],
+            )
+            for data in raw_vacancies
+        ]
 
-    def __init__(self, api_work) -> None:
-        self.vacancies = []
-        self.url = 'https://api.hh.ru/vacancies'
-        self.headers = {'User-Agent': 'HH-User-Agent'}
-        self.parameters = {'text': '', 'page': 0, 'per_page': 100}
-        super().__init__(api_work)
+    def _get_list(self, url: str, params: dict, max_pages: int = 1) -> list[dict]:
 
-    def load_vacancies(self, user_input) -> None:
-        """
-        Метод класса VacanciesHH(Parser),
-        который запрашивает информацию по вакаснсиям на сайте hh.ru
-        """
+        items = []
+        for current_page in range(1, max_pages):
+            params['page'] = current_page
+            response = requests.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
 
-        self.parameters['text'] = user_input
-        while self.parameters.get('page') != 20:
-            response = requests.get(self.url, headers=self.headers, params=self.parameters, timeout=10)
-            vacancies = response.json()['items']
-            self.vacancies.extend(vacancies)
-            self.parameters['page'] += 1
-        super().file_saving(self.vacancies)
+            if data['found'] == 0:
+                break
+
+            items.extend(data['items'])
+
+        return items
